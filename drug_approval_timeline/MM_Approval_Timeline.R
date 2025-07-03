@@ -15,7 +15,8 @@ drugs <- read_sheet("https://docs.google.com/spreadsheets/d/15r99MdYzkRRdhKcOSFV
 
 # Add year and month columns
 drugs <- drugs %>% mutate(Year = year(FDA_Approval_Date)) %>% 
-  mutate(Month = month(FDA_Approval_Date, abbr = FALSE))
+  mutate(Month = month(FDA_Approval_Date, abbr = FALSE)) %>% 
+  filter(CommonName != "melphalan")
 
 # Get the number of drugs
 drug_count <- drugs %>% count() %>% pull()
@@ -25,6 +26,7 @@ drugs <- drugs %>% mutate(direction = rep(c(1,-1), length.out = drug_count))
 
 # Determine how close each approval was in time and then set dynamic plotting locations
 # Might require updates as table grows
+days_threshold <- 399
 drugs <- drugs %>% group_by(direction) %>% 
   mutate(LagDate = lag(FDA_Approval_Date), 
          Days_after = as.numeric(difftime(ymd(FDA_Approval_Date), ymd(LagDate), units = "days")),
@@ -32,28 +34,28 @@ drugs <- drugs %>% group_by(direction) %>%
          Days_before = as.numeric(difftime(ymd(LeadDate), ymd(FDA_Approval_Date), units = "days"))) %>% 
   ungroup() %>% 
   mutate(y_start = case_when(direction == 1 & is.na(Days_after) ~ 0.03, 
-                             direction == -1 & is.na(Days_after) ~ -0.03, 
-                             direction == 1 & Days_after > 300 & Days_before > 300 ~ 0.03, 
-                             direction == -1 & Days_after > 300 & Days_before > 300 ~ -0.03, 
-                             direction == 1 & Days_after > 300 & Days_before < 300 ~ 0.03, 
-                             direction == -1 & Days_after > 300 & Days_before < 300 ~ -0.03,
-                             direction == 1 & Days_after < 300 & Days_before < 300 ~ 0.1, 
-                             direction == -1 & Days_after < 300 & Days_before < 300 ~ -0.1, 
-                             direction == 1 & Days_after < 300 & Days_before > 300 ~ 0.1, 
-                             direction == -1 & Days_after < 300 & Days_before > 300 ~ -0.1, 
+                             direction == 1 & Days_after > days_threshold & Days_before > days_threshold ~ 0.03, 
+                             direction == 1 & Days_after > days_threshold & Days_before < days_threshold ~ 0.03, 
+                             direction == 1 & Days_after < days_threshold & Days_before < days_threshold ~ 0.1, 
+                             direction == 1 & Days_after < days_threshold & Days_before > days_threshold ~ 0.1, 
                              direction == 1 & is.na(Days_before) ~ 0.03, 
+                             direction == -1 & is.na(Days_after) ~ -0.03, 
+                             direction == -1 & Days_after > days_threshold & Days_before > days_threshold ~ -0.03, 
+                             direction == -1 & Days_after > days_threshold & Days_before < days_threshold ~ -0.03,
+                             direction == -1 & Days_after < days_threshold & Days_before < days_threshold ~ -0.1, 
+                             direction == -1 & Days_after < days_threshold & Days_before > days_threshold ~ -0.1, 
                              direction == -1 & is.na(Days_before) ~ -0.03, 
                              TRUE ~ 0.2), 
          position = case_when(direction == 1 & is.na(Days_after) ~ 0.055, 
                              direction == -1 & is.na(Days_after) ~ -0.055, 
-                             direction == 1 & Days_after > 300 & Days_before > 300 ~ 0.055, 
-                             direction == -1 & Days_after > 300 & Days_before > 300 ~ -0.055, 
-                             direction == 1 & Days_after > 300 & Days_before < 300 ~ 0.055, 
-                             direction == -1 & Days_after > 300 & Days_before < 300 ~ -0.055, 
-                             direction == 1 & Days_after < 300 & Days_before < 300 ~ 0.125, 
-                             direction == -1 & Days_after < 300 & Days_before < 300 ~ -0.125, 
-                             direction == 1 & Days_after < 300 & Days_before > 300 ~ 0.125, 
-                             direction == -1 & Days_after < 300 & Days_before > 300 ~ -0.125, 
+                             direction == 1 & Days_after > days_threshold & Days_before > days_threshold ~ 0.055, 
+                             direction == -1 & Days_after > days_threshold & Days_before > days_threshold ~ -0.055, 
+                             direction == 1 & Days_after > days_threshold & Days_before < days_threshold ~ 0.055, 
+                             direction == -1 & Days_after > days_threshold & Days_before < days_threshold ~ -0.055, 
+                             direction == 1 & Days_after < days_threshold & Days_before < days_threshold ~ 0.125, 
+                             direction == -1 & Days_after < days_threshold & Days_before < days_threshold ~ -0.125, 
+                             direction == 1 & Days_after < days_threshold & Days_before > days_threshold ~ 0.125, 
+                             direction == -1 & Days_after < days_threshold & Days_before > days_threshold ~ -0.125, 
                              direction == 1 & is.na(Days_before) ~ 0.055, 
                              direction == -1 & is.na(Days_before) ~ -0.055, 
                              TRUE ~ 0.2))
